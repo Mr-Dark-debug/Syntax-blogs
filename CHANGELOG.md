@@ -5,6 +5,21 @@ All notable changes to the SyntaxBlogs project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2024-07-17
+
+### Added
+
+- MongoDB integration for dynamic data storage and retrieval
+- API routes for blog posts, profiles, topics, and authentication
+- Database models and schemas for all content types
+- Connection pooling for efficient database access
+- Seed script to initialize the database with sample data
+- Updated components to fetch data from API endpoints
+- Loading states and error handling for all data fetching
+- Fallback to localStorage when API is unavailable
+- Updated README.md with MongoDB setup instructions
+- Enhanced admin panel to use API for CRUD operations
+
 ## [1.12.4] - 2024-07-16
 
 ### Changed

@@ -52,6 +52,10 @@
         <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" width="48" height="48" alt="Node.js" />
         <br>Node.js
       </td>
+      <td align="center" width="96">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg" width="48" height="48" alt="MongoDB" />
+        <br>MongoDB
+      </td>
     </tr>
   </table>
 </div>
@@ -63,6 +67,8 @@
 - **🔤 Typography**: Custom sans-serif fonts for optimal readability
 - **📦 State Management**: React hooks and context for state management
 - **🔍 SEO**: Built-in SEO optimization with Next.js metadata
+- **🗄️ Database**: MongoDB for dynamic content storage and retrieval
+- **🔌 API**: RESTful API endpoints for data operations
 
 ## 🎨 Design System
 
@@ -243,7 +249,24 @@ The admin panel includes:
    yarn install
    ```
 
-3. **Run the development server:**
+3. **Set up MongoDB:**
+
+   - Create a MongoDB Atlas account or use a local MongoDB instance
+   - Create a `.env` file in the root directory with your MongoDB connection string:
+
+   ```
+   mongodb_uri=your_mongodb_connection_string
+   monoguser=your_mongodb_username
+   mongopass=your_mongodb_password
+   ```
+
+4. **Seed the database:**
+
+   ```bash
+   node src/scripts/seed-db.js
+   ```
+
+5. **Run the development server:**
 
    ```bash
    npm run dev
@@ -251,7 +274,7 @@ The admin panel includes:
    yarn dev
    ```
 
-4. **Open your browser:**
+6. **Open your browser:**
    Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
 
 ## 🌐 Deployment
@@ -300,22 +323,23 @@ For manual deployment:
 
 ### Adding New Blog Posts
 
-Create new blog posts through the admin panel or by adding entries to localStorage with the following structure:
+Create new blog posts through the admin panel, which will store them in MongoDB. The blog post structure is as follows:
 
 ```javascript
 {
-  id: "unique-id",
+  _id: "mongodb-generated-id",
   title: "Post Title",
   slug: "post-slug",
   excerpt: "Brief excerpt of the post content...",
   content: "Full markdown content with code blocks and embeds...",
   category: "CATEGORY_NAME",
   accentColor: "#6C63FF",
-  status: "published",
+  status: "published", // "draft", "published", or "scheduled"
   views: 123,
   createdAt: "2023-07-15T12:00:00Z",
   publishedAt: "2023-07-16T10:00:00Z",
-  author: "Developer"
+  author: "Developer",
+  tags: ["AI", "Machine Learning", "Neural Networks"]
 }
 ```
 

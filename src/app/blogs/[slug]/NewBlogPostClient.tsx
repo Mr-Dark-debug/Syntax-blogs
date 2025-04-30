@@ -9,15 +9,19 @@ import { NewSummarizeButton } from '@/components/ui/NewSummarizeButton';
 import { SocialFollowItem } from '@/components/ui/SocialFollowItem';
 
 export interface BlogPost {
+  _id?: string;
   slug: string;
   title: string;
-  date: string;
-  author: string;
+  date?: string;
+  author?: string;
   category: string;
-  tags: string[];
+  tags?: string[];
   views: number;
   content: string;
   status?: string;
+  publishedAt?: string;
+  createdAt?: string;
+  accentColor?: string;
 }
 
 interface BlogPostClientProps {
@@ -28,48 +32,104 @@ export default function NewBlogPostClient({ slug }: BlogPostClientProps) {
   const [clientBlogData, setClientBlogData] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch post from localStorage
+  // Fetch post from API
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setLoading(true);
-      const savedPosts = localStorage.getItem('blogPosts');
+    const fetchBlogPost = async () => {
+      try {
+        setLoading(true);
 
-      if (savedPosts) {
-        try {
-          const posts = JSON.parse(savedPosts);
-          const foundPost = posts.find((post: BlogPost) => post.slug === slug && post.status === 'published');
+        // Fetch post from API
+        const response = await fetch(`/api/posts?slug=${slug}&status=published`);
 
-          if (foundPost) {
-            // Format the post data to match our expected structure
-            setClientBlogData({
-              slug: foundPost.slug,
-              title: foundPost.title,
-              date: new Date(foundPost.publishDate || foundPost.date).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-              }),
-              author: foundPost.author || 'Developer',
-              category: foundPost.category || 'Uncategorized',
-              tags: foundPost.tags || [foundPost.category || 'Uncategorized'],
-              views: foundPost.views || 0,
-              content: foundPost.content
+        if (!response.ok) {
+          throw new Error('Failed to fetch blog post');
+        }
+
+        const data = await response.json();
+
+        // Check if we found a post
+        if (data && data.length > 0) {
+          const post = data[0];
+
+          // Increment view count
+          try {
+            await fetch(`/api/posts/${post._id}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ incrementViews: true }),
             });
-            setNotFound(false);
+          } catch (viewError) {
+            console.error('Error incrementing view count:', viewError);
+          }
+
+          // Format the post data to match our expected structure
+          setClientBlogData({
+            _id: post._id,
+            slug: post.slug,
+            title: post.title,
+            date: new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            }),
+            author: post.author || 'Developer',
+            category: post.category || 'Uncategorized',
+            tags: post.tags || [post.category || 'Uncategorized'],
+            views: post.views || 0,
+            content: post.content,
+            accentColor: post.accentColor
+          });
+          setNotFound(false);
+        } else {
+          // Fallback to localStorage if API returns no results
+          const savedPosts = localStorage.getItem('blogPosts');
+          if (savedPosts) {
+            try {
+              const posts = JSON.parse(savedPosts);
+              const foundPost = posts.find((post: BlogPost) => post.slug === slug && post.status === 'published');
+
+              if (foundPost) {
+                setClientBlogData({
+                  slug: foundPost.slug,
+                  title: foundPost.title,
+                  date: new Date(foundPost.publishedAt || foundPost.createdAt || Date.now()).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  }),
+                  author: foundPost.author || 'Developer',
+                  category: foundPost.category || 'Uncategorized',
+                  tags: foundPost.tags || [foundPost.category || 'Uncategorized'],
+                  views: foundPost.views || 0,
+                  content: foundPost.content,
+                  accentColor: foundPost.accentColor
+                });
+                setNotFound(false);
+              } else {
+                setNotFound(true);
+              }
+            } catch (localStorageError) {
+              console.error('Error loading blog post from localStorage:', localStorageError);
+              setNotFound(true);
+            }
           } else {
             setNotFound(true);
           }
-        } catch (error) {
-          console.error('Error loading blog post:', error);
-          setNotFound(true);
         }
-      } else {
+      } catch (err) {
+        console.error('Error fetching blog post:', err);
+        setError('Failed to load blog post');
         setNotFound(true);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setLoading(false);
-    }
+    fetchBlogPost();
   }, [slug]);
 
   // Show loading state
@@ -87,6 +147,22 @@ export default function NewBlogPostClient({ slug }: BlogPostClientProps) {
   }
 
   // Show not found state
+  if (error) {
+    return (
+      <div className="w-full bg-[#f0f0f0]">
+        <div className="container mx-auto px-4 py-8 min-h-screen">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Error</h2>
+            <p className="mb-4">{error}</p>
+            <Link href="/blogs" className="bg-black text-white px-4 py-2 font-bold rounded-md">
+              BACK TO BLOGS
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (notFound || !clientBlogData) {
     return (
       <div className="w-full bg-[#f0f0f0]">
@@ -134,10 +210,10 @@ export default function NewBlogPostClient({ slug }: BlogPostClientProps) {
                 <div className="flex flex-wrap items-center gap-4 mb-6">
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold">
-                      {clientBlogData.author.charAt(0)}
+                      {(clientBlogData.author ?? 'Anonymous').charAt(0)}
                     </div>
                     <div>
-                      <div className="font-bold">{clientBlogData.author}</div>
+                      <div className="font-bold">{clientBlogData.author || 'Developer'}</div>
                       <div className="text-sm text-gray-600">{clientBlogData.date}</div>
                     </div>
                   </div>
@@ -160,9 +236,9 @@ export default function NewBlogPostClient({ slug }: BlogPostClientProps) {
               {/* Article content */}
               <div className="p-6">
                 <NewMarkdownRenderer content={clientBlogData.content} />
-                
+
                 <div className="flex flex-wrap gap-2 mt-8">
-                  {clientBlogData.tags.map((tag: string) => (
+                  {(clientBlogData.tags ?? []).map((tag: string) => (
                     <span key={tag} className="px-3 py-1 bg-[#6C63FF]/10 text-[#6C63FF] font-bold rounded-md">
                       #{tag}
                     </span>
@@ -177,26 +253,26 @@ export default function NewBlogPostClient({ slug }: BlogPostClientProps) {
             <div className="border-4 border-black bg-white p-6 rounded-lg">
               <h3 className="text-xl font-bold mb-4">AI and ML Insights</h3>
               <div className="flex flex-wrap gap-2">
-                <button className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
+                <button type="button" className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
                   Artificial Intelligence
                 </button>
-                <button className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
+                <button type="button" className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
                   Machine Learning
                 </button>
-                <button className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
+                <button type="button" className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
                   Neural Networks
                 </button>
-                <button className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
+                <button type="button" className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
                   Data Science
                 </button>
-                <button className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
+                <button type="button" className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
                   Computer Vision
                 </button>
-                <button className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
+                <button type="button" className="px-3 py-1 border-2 border-black rounded-md bg-white hover:bg-black hover:text-white transition">
                   Reinforcement Learning
                 </button>
               </div>
-              <button className="text-[#6C63FF] font-bold hover:underline mt-4">
+              <button type="button" className="text-[#6C63FF] font-bold hover:underline mt-4">
                 See more topics
               </button>
             </div>

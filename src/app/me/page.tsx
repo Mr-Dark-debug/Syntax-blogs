@@ -16,31 +16,54 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
 
-    // Simple authentication for demo purposes
-    // In a real app, this would be a server-side API call
-    if (username === 'psadmin' && password === 'ps123') {
-      // Set a session token in localStorage
-      localStorage.setItem('adminToken', 'demo-token-12345');
+    try {
+      // Call the authentication API
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Authentication failed');
+      }
+
+      const data = await response.json();
+
+      // Set the token in localStorage
+      localStorage.setItem('adminToken', data.token);
+
       // Redirect to admin dashboard
       router.push('/admin');
-    } else {
-      setError('Invalid username or password');
+    } catch (err) {
+      console.error('Login error:', err);
+
+      // Fallback for demo purposes
+      if (username === 'psadmin' && password === 'ps123') {
+        localStorage.setItem('adminToken', 'demo-token-12345');
+        router.push('/admin');
+      } else {
+        setError(err instanceof Error ? err.message : 'Invalid username or password');
+      }
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
     <div className="neo-brutalism min-h-screen flex items-center justify-center bg-white p-4">
       <div className="neo-container w-full max-w-md p-8">
         <h1 className="text-3xl font-bold mb-6 text-center">Admin Login</h1>
-        
+
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
             <p>{error}</p>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
@@ -56,7 +79,7 @@ export default function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
-          
+
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
@@ -71,7 +94,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          
+
           <div>
             <button
               type="submit"
@@ -82,7 +105,7 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
-        
+
         <div className="mt-6 text-center text-sm text-gray-500">
           <p>Default credentials for demo:</p>
           <p>Username: psadmin | Password: ps123</p>
